@@ -1,0 +1,8 @@
+webserver:
+  serverAddr: '0.0.0.0:10998'
+storage:
+  storageDir: /data/cache/rocksdb
+  nodeId: 1
+  vkClusterConfig:
+    nodes: ["127.0.0.1:10998"]
+    replicas: 1
