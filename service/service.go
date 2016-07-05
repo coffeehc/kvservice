@@ -2,6 +2,7 @@ package main
 
 import (
 	"baseservices/kvservice"
+
 	"github.com/coffeehc/microserviceboot/base"
 	"github.com/coffeehc/microserviceboot/consultool"
 	"github.com/coffeehc/microserviceboot/serviceboot"
@@ -61,6 +62,10 @@ func (this *KVService) GetEndPoints() []base.EndPoint {
 		base.EndPoint{
 			Metadata:    kvservice.DEL_KEY,
 			HandlerFunc: this.del_key,
+		},
+		base.EndPoint{
+			Metadata:    kvservice.GET_VALUES,
+			HandlerFunc: this.get_vaules,
 		},
 	}
 }
