@@ -4,8 +4,8 @@ import (
 	"baseservices/kvservice/service/rocksdb"
 	"sync"
 
-	"github.com/tecbot/gorocksdb"
 	"baseservices/kvservice"
+	"github.com/tecbot/gorocksdb"
 )
 
 type Iterator interface {
@@ -63,9 +63,12 @@ func (this *_Iterator) wait() {
 func (this *_Iterator) Next() bool {
 	if !this.isClose && (!this.allClose || len(this.channel) != 0) {
 		value := <-this.channel
+		if value == nil {
+			return false
+		}
 		this.value = &kvservice.KVInfo{
-			Key:string(value.Key),
-			Value:string(value.Value),
+			Key:   string(value.Key),
+			Value: string(value.Value),
 		}
 		return true
 	}
@@ -73,7 +76,7 @@ func (this *_Iterator) Next() bool {
 	return false
 }
 
-func (this *_Iterator) Value() *kvservice.KVInfo{
+func (this *_Iterator) Value() *kvservice.KVInfo {
 	return this.value
 
 }

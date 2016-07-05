@@ -59,6 +59,7 @@ func (this *KVService) get_vaules(request *http.Request, pathFragments map[strin
 	cf := request.FormValue("cf")
 	iterator := this.storageService.GetAll(cf, nil, []byte(prefix))
 	defer iterator.Close()
+	defer base.DebugPanic(true)
 	reply.AdapterHttpHandler(true)
 	w := reply.GetResponseWriter()
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
@@ -68,7 +69,7 @@ func (this *KVService) get_vaules(request *http.Request, pathFragments map[strin
 	for iterator.Next() {
 		w.Write(dot)
 		value := iterator.Value()
-		value.Cf=cf
+		value.Cf = cf
 		if value != nil {
 			data, _ := json.Marshal(value)
 			w.Write(data)
