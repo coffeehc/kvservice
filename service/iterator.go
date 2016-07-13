@@ -179,7 +179,9 @@ func (this *_Iterator) Value() *modules.KVInfo {
 func (this *_Iterator) Close() {
 	this.isClose = true
 	for _, i := range this.iterators {
-		i.Close()
+		if i != nil {
+			i.Close()
+		}
 	}
 
 }

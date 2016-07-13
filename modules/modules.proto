@@ -9,6 +9,6 @@ message KVInfo {
 }
 
 message KVInfos {
-    repeated KVInfo kvInfo = 1;
+    repeated KVInfo kvInfos = 1;
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/coffeehc/microserviceboot/serviceboot"
 	"github.com/coffeehc/web"
 	"github.com/coffeehc/web/protobuf"
+	"github.com/golang/protobuf/proto"
 	"strconv"
 )
 
@@ -62,6 +63,7 @@ func (this *KVService) del_key(request *http.Request, pathFragments map[string]s
 
 func (this *KVService) get_vaules(request *http.Request, pathFragments map[string]string, reply web.Reply) {
 	defer serviceboot.ErrorRecover(reply)
+	defer base.DebugPanic(true)
 	prefix := serviceboot.ParsePathParamToBinary(pathFragments, kvservice.PathParam_Prefix)
 	start, _ := base64.RawURLEncoding.DecodeString(request.FormValue("start"))
 	cf := request.FormValue("cf")
@@ -71,19 +73,21 @@ func (this *KVService) get_vaules(request *http.Request, pathFragments map[strin
 		limit = 100
 	}
 	defer iterator.Close()
-	kvs := make([]*modules.KVInfo, 0)
+	reply.AdapterHttpHandler(true)
+	w := reply.GetResponseWriter()
+	w.Header().Add("Content-Type", "application/x-protobuf")
 	count := 0
-	if (limit < 0 || count < limit) && iterator.Next() {
+	for (limit < 0 || count < limit) && iterator.Next() {
 		value := iterator.Value()
 		kvInfo := &modules.KVInfo{
 			Cf:    &cf,
 			Key:   value.Key,
 			Value: value.Value,
 		}
-		kvs = append(kvs, kvInfo)
+		data, _ := proto.Marshal(kvInfo)
+		w.Write([]byte{0xa, uint8(len(data))})
+		w.Write(data)
 		count++
 	}
-	reply.With(&modules.KVInfos{
-		KvInfo: kvs,
-	}).As(protobuf.Transport_PB)
+
 }
