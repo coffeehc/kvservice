@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/coffeehc/logger"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/tecbot/gorocksdb"
+	"sync"
 )
 
 const DB_PARTITION = 1024
@@ -15,7 +17,7 @@ type DataService interface {
 	Get(columnFamily string, key []byte) ([]byte, error)
 	Put(columnFamily string, key, value []byte) error
 	Del(columnFamily string, key []byte) error
-	GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey []byte) Iterator
+	GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey, startKey []byte, order string) Iterator
 	GetEngine(key []byte) (StorageEngine, error)
 	Close()
 }
@@ -34,24 +36,27 @@ func NewStorageService(config *StorageConfig) (StorageService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("创建存储目录[%s]出错:%s", config.StorageDir, err)
 	}
-	engines := make(map[int64]StorageEngine, DB_PARTITION)
+	engines := make(map[int]StorageEngine, DB_PARTITION)
 	for i := 0; i < DB_PARTITION; i++ {
 		if i%config.NodeId == 0 {
 			engine, err := NewStorageEngine(config.StorageDir, i, false)
 			if err != nil {
 				return nil, err
 			}
-			engines[int64(i)] = engine
+			engines[i] = engine
 		}
 	}
+	logger.Info("启动存储引擎[%d]个", len(engines))
 	storageService := &_StorageService{
-		engins: engines,
+		engins:    engines,
+		partition: DB_PARTITION,
 	}
 	return storageService, nil
 }
 
 type _StorageService struct {
-	engins map[int64]StorageEngine
+	engins    map[int]StorageEngine
+	partition int
 }
 
 var NO_ENGINE = errors.New("key没有存储在该节点")
@@ -89,15 +94,21 @@ func (this *_StorageService) Del(columnFamily string, key []byte) error {
 	return engine.Del(columnFamily, nil, key)
 }
 
-func (this *_StorageService) GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey []byte) Iterator {
-	iterator := newIterator(1024, prefixKey)
-	for _, engine := range this.engins {
-		iter, err := engine.GetAll(columnFamily, opts, prefixKey)
-		if err == nil {
-			iterator.add(iter)
-		}
+func (this *_StorageService) GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey, startKey []byte, order string) Iterator {
+	iterator := newIterator(this.partition, prefixKey, startKey, order)
+	wait := new(sync.WaitGroup)
+	for partition, engine := range this.engins {
+		wait.Add(1)
+		func(_partition int, _engine StorageEngine) {
+			defer wait.Done()
+			iter, err := _engine.GetAll(columnFamily, opts)
+			if err == nil {
+				iterator.add(_partition, iter)
+			}
+		}(partition, engine)
 	}
-	iterator.wait()
+	wait.Wait()
+	iterator.addEnd()
 	return iterator
 }
 

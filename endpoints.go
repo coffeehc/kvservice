@@ -7,9 +7,14 @@ import (
 	"github.com/coffeehc/web"
 )
 
+type Order string
+
 var (
 	PathParam_Key    = "key"
 	PathParam_Prefix = "prefix"
+
+	Order_ASC  = Order("asc")
+	Order_DESC = Order("desc")
 )
 
 var (
@@ -18,9 +23,3 @@ var (
 	DEL_KEY    = base.EndPointMeta{Path: fmt.Sprintf("/api/v1/value/{%s}", PathParam_Key), Method: web.DELETE, Description: "删除一个值"}
 	GET_VALUES = base.EndPointMeta{Path: fmt.Sprintf("/api/v1/values/{%s}", PathParam_Prefix), Method: web.GET, Description: "获取对应前缀的值"}
 )
-
-type KVInfo struct {
-	Cf    string `json:"cf"`
-	Key   string `json:"k"`
-	Value string `json:"v"`
-}

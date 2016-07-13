@@ -12,7 +12,7 @@ type StorageEngine interface {
 	Get(columnFamily string, opts *gorocksdb.ReadOptions, key []byte) ([]byte, error)
 	Put(columnFamily string, opts *gorocksdb.WriteOptions, key, value []byte) error
 	Del(columnFamily string, opts *gorocksdb.WriteOptions, key []byte) error
-	GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey []byte) (*gorocksdb.Iterator, error)
+	GetAll(columnFamily string, opts *gorocksdb.ReadOptions) (*gorocksdb.Iterator, error)
 	Close()
 	GetPartition() int
 	IsReplica() bool
@@ -74,11 +74,11 @@ func (this *_StorageEngine) Del(columnFamily string, opts *gorocksdb.WriteOption
 	return this.rocksDBService.Del(columnFamily, opts, key)
 }
 
-func (this *_StorageEngine) GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey []byte) (*gorocksdb.Iterator, error) {
+func (this *_StorageEngine) GetAll(columnFamily string, opts *gorocksdb.ReadOptions) (*gorocksdb.Iterator, error) {
 	if opts == nil {
 		opts = this.readOptions
 	}
-	return this.rocksDBService.GetAll(columnFamily, opts, prefixKey)
+	return this.rocksDBService.GetAll(columnFamily, opts)
 }
 
 func (this *_StorageEngine) Close() {

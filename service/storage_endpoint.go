@@ -2,79 +2,88 @@ package main
 
 import (
 	"baseservices/kvservice"
-	"fmt"
 	"net/http"
 
+	"baseservices/kvservice/modules"
+	"encoding/base64"
 	"github.com/coffeehc/microserviceboot/base"
 	"github.com/coffeehc/microserviceboot/serviceboot"
 	"github.com/coffeehc/web"
-	"gopkg.in/square/go-jose.v1/json"
+	"github.com/coffeehc/web/protobuf"
+	"strconv"
 )
 
 func (this *KVService) get_value(request *http.Request, pathFragments map[string]string, reply web.Reply) {
 	defer serviceboot.ErrorRecover(reply)
-	key, ok := pathFragments[kvservice.PathParam_Key]
+	keyStr, ok := pathFragments[kvservice.PathParam_Key]
 	if !ok {
 		panic(base.BuildBizErr("没有指定 key 值"))
 	}
+	key, err := base64.RawURLEncoding.DecodeString(keyStr)
+	if err != nil {
+		panic(base.BuildBizErr("无法解析Key"))
+	}
 	cf := request.FormValue("cf")
-	v, err := this.storageService.Get(cf, []byte(key))
+	v, err := this.storageService.Get(cf, key)
 	serviceboot.PanicErr(err)
 	if v == nil {
 		panic(base.BuildBizErr("no value", 400, 404))
 	}
-	reply.With(&kvservice.KVInfo{
-		Cf:    cf,
-		Value: fmt.Sprintf("%s", v),
+	reply.With(&modules.KVInfo{
+		Cf:    &cf,
+		Value: v,
 		Key:   key,
-	})
+	}).As(protobuf.Transport_PB)
 }
 
 func (this *KVService) post_value(request *http.Request, pathFragments map[string]string, reply web.Reply) {
 	defer serviceboot.ErrorRecover(reply)
-	kvinfo := new(kvservice.KVInfo)
-	serviceboot.UnmarshalWhitJson(request, kvinfo)
-	err := this.storageService.Put(kvinfo.Cf, []byte(kvinfo.Key), []byte(kvinfo.Value))
+	kvinfo := &modules.KVInfo{}
+	serviceboot.UnmarshalWhitProtobuf(request, kvinfo)
+	err := this.storageService.Put(kvinfo.GetCf(), kvinfo.GetKey(), kvinfo.GetValue())
 	serviceboot.PanicErr(err)
 	reply.With(kvinfo)
 }
 
 func (this *KVService) del_key(request *http.Request, pathFragments map[string]string, reply web.Reply) {
 	defer serviceboot.ErrorRecover(reply)
-	key, ok := pathFragments[kvservice.PathParam_Key]
+	keyStr, ok := pathFragments[kvservice.PathParam_Key]
 	if !ok {
 		panic(base.BuildBizErr("没有指定 key 值"))
 	}
+	key, err := base64.RawURLEncoding.DecodeString(keyStr)
+	if err != nil {
+		panic(base.BuildBizErr("无法解析Key"))
+	}
 	cf := request.FormValue("cf")
-	err := this.storageService.Del(cf, []byte(key))
+	err = this.storageService.Del(cf, key)
 	serviceboot.PanicErr(err)
 }
 
 func (this *KVService) get_vaules(request *http.Request, pathFragments map[string]string, reply web.Reply) {
 	defer serviceboot.ErrorRecover(reply)
-	prefix, ok := pathFragments[kvservice.PathParam_Prefix]
-	if !ok {
-		panic(base.BuildBizErr("没有指定 prefix 值"))
-	}
+	prefix := serviceboot.ParsePathParamToBinary(pathFragments, kvservice.PathParam_Prefix)
+	start, _ := base64.RawURLEncoding.DecodeString(request.FormValue("start"))
 	cf := request.FormValue("cf")
-	iterator := this.storageService.GetAll(cf, nil, []byte(prefix))
-	defer iterator.Close()
-	defer base.DebugPanic(true)
-	reply.AdapterHttpHandler(true)
-	w := reply.GetResponseWriter()
-	w.Header().Add("Content-Type", "application/json; charset=utf-8")
-	w.Write([]byte("["))
-	dot := []byte{}
-	_dot := []byte(",")
-	for iterator.Next() {
-		w.Write(dot)
-		value := iterator.Value()
-		value.Cf = cf
-		if value != nil {
-			data, _ := json.Marshal(value)
-			w.Write(data)
-			dot = _dot
-		}
+	iterator := this.storageService.GetAll(cf, nil, prefix, start, request.FormValue("order"))
+	limit, err := strconv.Atoi(request.FormValue("limit"))
+	if err != nil {
+		limit = 100
 	}
-	w.Write([]byte("]"))
+	defer iterator.Close()
+	kvs := make([]*modules.KVInfo, 0)
+	count := 0
+	if (limit < 0 || count < limit) && iterator.Next() {
+		value := iterator.Value()
+		kvInfo := &modules.KVInfo{
+			Cf:    &cf,
+			Key:   value.Key,
+			Value: value.Value,
+		}
+		kvs = append(kvs, kvInfo)
+		count++
+	}
+	reply.With(&modules.KVInfos{
+		KvInfo: kvs,
+	}).As(protobuf.Transport_PB)
 }

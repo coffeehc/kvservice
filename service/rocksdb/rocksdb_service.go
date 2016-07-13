@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sync"
 
 	"github.com/coffeehc/logger"
 	"github.com/tecbot/gorocksdb"
@@ -17,7 +16,7 @@ type RocksDBService interface {
 	Get(columnFamily string, opts *gorocksdb.ReadOptions, key []byte) ([]byte, error)
 	Put(columnFamily string, opts *gorocksdb.WriteOptions, key, value []byte) error
 	Del(columnFamily string, opts *gorocksdb.WriteOptions, key []byte) error
-	GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey []byte) (*gorocksdb.Iterator, error)
+	GetAll(columnFamily string, opts *gorocksdb.ReadOptions) (*gorocksdb.Iterator, error)
 	Close()
 }
 
@@ -51,14 +50,12 @@ func NewRocksdbService(opts *gorocksdb.Options, dbPath string) (RocksDBService, 
 	return &_RocksDBService{
 		db:             db,
 		columnFamilies: handlers,
-		rwMuext:        new(sync.RWMutex),
 	}, nil
 }
 
 type _RocksDBService struct {
 	db             *gorocksdb.DB
 	columnFamilies map[string]*gorocksdb.ColumnFamilyHandle
-	rwMuext        *sync.RWMutex
 }
 
 func (this *_RocksDBService) InitColumnFamily(columnFamily string, opts *gorocksdb.Options) (*gorocksdb.ColumnFamilyHandle, error) {
@@ -109,7 +106,7 @@ func (this *_RocksDBService) Del(columnFamily string, opts *gorocksdb.WriteOptio
 	return this.db.DeleteCF(opts, cfHandler, key)
 }
 
-func (this *_RocksDBService) GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey []byte) (*gorocksdb.Iterator, error) {
+func (this *_RocksDBService) GetAll(columnFamily string, opts *gorocksdb.ReadOptions) (*gorocksdb.Iterator, error) {
 	cfHandler, err := this.getCFHandler(columnFamily, true)
 	if err != nil {
 		return nil, err

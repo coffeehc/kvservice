@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+package modules;
+
+message KVInfo {
+    required bytes key = 1;
+    optional bytes value = 2;
+    optional string cf = 3;
+}
+
+message KVInfos {
+    repeated KVInfo kvInfo = 1;
+}
+
