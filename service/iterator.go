@@ -5,13 +5,31 @@ import (
 
 	"baseservices/kvservice"
 	"baseservices/kvservice/modules"
-	"fmt"
 	"github.com/tecbot/gorocksdb"
 	"sort"
 )
 
+func memcmp(i, j []byte) int {
+	s, is, js := 0, len(i), len(j)
+	if is < js {
+		s = is
+	} else {
+		s = js
+	}
+	for k := 0; k < s; k++ {
+		if i[k] == j[k] {
+			continue
+		}
+		if i[k] > j[k] {
+			return 1
+		}
+		return -1
+	}
+	return 0
+}
+
 type Order interface {
-	Less(i, j string) bool
+	Less(i, j []byte) bool
 	InitIterator(iter *gorocksdb.Iterator)
 	Next(iter *gorocksdb.Iterator)
 }
@@ -19,8 +37,8 @@ type Order interface {
 type Order_asc struct {
 }
 
-func (this Order_asc) Less(i, j string) bool {
-	return i < j
+func (this Order_asc) Less(i, j []byte) bool {
+	return memcmp(j, i) > 0
 }
 func (this Order_asc) InitIterator(iter *gorocksdb.Iterator) {
 	iter.SeekToFirst()
@@ -32,8 +50,8 @@ func (this Order_asc) Next(iter *gorocksdb.Iterator) {
 type Order_desc struct {
 }
 
-func (this Order_desc) Less(i, j string) bool {
-	return i > j
+func (this Order_desc) Less(i, j []byte) bool {
+	return memcmp(i, j) > 0
 }
 func (this Order_desc) InitIterator(iter *gorocksdb.Iterator) {
 	iter.SeekToLast()
@@ -65,7 +83,7 @@ func (c *sortValue) Swap(i, j int) {
 	c.data[i], c.data[j] = c.data[j], c.data[i]
 }
 func (c *sortValue) Less(i, j int) bool {
-	return c.order.Less(string(c.data[i].data.Key), string(c.data[j].data.Key))
+	return c.order.Less(c.data[i].data.Key, c.data[j].data.Key)
 }
 
 func (c *sortValue) addData(v *value) {
@@ -107,9 +125,9 @@ func newIterator(partition int, prefixKey, startKey []byte, orderStr string) *_I
 func (this *_Iterator) add(partition int, iter *gorocksdb.Iterator) {
 	this.order.InitIterator(iter)
 	var dataInfo *rocksdb.DataInfo = nil
-	start := fmt.Sprintf("%s", this.startKey)
+	start := this.startKey
 	for iter.ValidForPrefix(this.prefixKey) {
-		if len(this.startKey) == 0 || this.order.Less(start, fmt.Sprintf("%s", copyData(iter.Key()))) {
+		if len(this.startKey) == 0 || this.order.Less(start, copyData(iter.Key())) {
 			dataInfo = &rocksdb.DataInfo{
 				Key:   copyData(iter.Key()),
 				Value: copyData(iter.Value()),
@@ -193,11 +211,11 @@ func copyData(slice *gorocksdb.Slice) []byte {
 	return data
 }
 
-func quickSort(vs []*value, newValue *value, prefixLen int, orderFunc func(i, j string) bool) {
-	key := string(newValue.data.Key[prefixLen:])
+func quickSort(vs []*value, newValue *value, prefixLen int, orderFunc func(i, j []byte) bool) {
+	key := newValue.data.Key[prefixLen:]
 	size := len(vs)
 	for i := 1; i < size; i++ {
-		if orderFunc(string(vs[i].data.Key[prefixLen:]), key) {
+		if orderFunc(vs[i].data.Key[prefixLen:], key) {
 			vs[i-1] = vs[i]
 		} else {
 			vs[i-1] = newValue
