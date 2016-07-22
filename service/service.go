@@ -1,7 +1,7 @@
 package main
 
 import (
-	"baseservices/kvservice"
+	"github.com/coffeehc/baseservices/kvservice"
 
 	"github.com/coffeehc/microserviceboot/base"
 	"github.com/coffeehc/microserviceboot/consultool"

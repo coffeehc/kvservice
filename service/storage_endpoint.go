@@ -1,10 +1,10 @@
 package main
 
 import (
-	"baseservices/kvservice"
+	"github.com/coffeehc/baseservices/kvservice"
 	"net/http"
 
-	"baseservices/kvservice/modules"
+	"github.com/coffeehc/baseservices/kvservice/modules"
 	"encoding/base64"
 	"github.com/coffeehc/microserviceboot/base"
 	"github.com/coffeehc/microserviceboot/serviceboot"

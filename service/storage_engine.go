@@ -1,7 +1,7 @@
 package main
 
 import (
-	"baseservices/kvservice/service/rocksdb"
+	"github.com/coffeehc/baseservices/kvservice/service/rocksdb"
 	"fmt"
 	"path"
 

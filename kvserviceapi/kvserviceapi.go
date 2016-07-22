@@ -1,10 +1,10 @@
 package kvserviceapi
 
 import (
-	"baseservices/kvservice"
+	"github.com/coffeehc/baseservices/kvservice"
 	"net/url"
 
-	"baseservices/kvservice/modules"
+	"github.com/coffeehc/baseservices/kvservice/modules"
 	"encoding/base64"
 	"github.com/coffeehc/logger"
 	"github.com/coffeehc/microserviceboot/base"
