@@ -13,10 +13,10 @@ import (
 )
 
 type KVServiceApi interface {
-	Get(cf string, key []byte) (*modules.KVInfo, *base.Error)
-	Put(cf string, key, value []byte) *base.Error
-	Del(cf string, key []byte) *base.Error
-	GetAll(cf string, prefix, startKey []byte, order kvservice.Order, limit int) ([]*modules.KVInfo, *base.Error)
+	Get(cf string, key []byte) (*modules.KVInfo, base.Error)
+	Put(cf string, key, value []byte) base.Error
+	Del(cf string, key []byte) base.Error
+	GetAll(cf string, prefix, startKey []byte, order kvservice.Order, limit int) ([]*modules.KVInfo, base.Error)
 }
 
 const (
@@ -46,7 +46,7 @@ type _KVServiceApi struct {
 	serviceClient *serviceclient.ServiceClient
 }
 
-func (this *_KVServiceApi) Get(cf string, key []byte) (*modules.KVInfo, *base.Error) {
+func (this *_KVServiceApi) Get(cf string, key []byte) (*modules.KVInfo, base.Error) {
 	kvInfo := new(modules.KVInfo)
 	queryVaules := make(url.Values)
 	queryVaules.Set("cf", cf)
@@ -55,7 +55,7 @@ func (this *_KVServiceApi) Get(cf string, key []byte) (*modules.KVInfo, *base.Er
 	}, queryVaules, nil, kvInfo)
 	return kvInfo, err
 }
-func (this *_KVServiceApi) Put(cf string, key, value []byte) *base.Error {
+func (this *_KVServiceApi) Put(cf string, key, value []byte) base.Error {
 	kvInfo := &modules.KVInfo{
 		Key:   key,
 		Value: value,
@@ -63,7 +63,7 @@ func (this *_KVServiceApi) Put(cf string, key, value []byte) *base.Error {
 	}
 	return this.serviceClient.SyncCallApiExt(POST_VALUE, nil, nil, serviceclient.NewRequestPBBody(kvInfo), nil)
 }
-func (this *_KVServiceApi) Del(cf string, key []byte) *base.Error {
+func (this *_KVServiceApi) Del(cf string, key []byte) base.Error {
 	queryVaules := make(url.Values)
 	queryVaules.Set("cf", cf)
 	return this.serviceClient.SyncCallApiExt(DEL_KEY, map[string]string{
@@ -71,7 +71,7 @@ func (this *_KVServiceApi) Del(cf string, key []byte) *base.Error {
 	}, queryVaules, nil, nil)
 }
 
-func (this *_KVServiceApi) GetAll(cf string, prefix, startKey []byte, order kvservice.Order, limit int) ([]*modules.KVInfo, *base.Error) {
+func (this *_KVServiceApi) GetAll(cf string, prefix, startKey []byte, order kvservice.Order, limit int) ([]*modules.KVInfo, base.Error) {
 	queryVaules := make(url.Values)
 	queryVaules.Set("cf", cf)
 	queryVaules.Set("start", base64.RawURLEncoding.EncodeToString(startKey))

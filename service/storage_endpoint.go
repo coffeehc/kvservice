@@ -18,17 +18,17 @@ func (this *KVService) get_value(request *http.Request, pathFragments map[string
 	defer serviceboot.ErrorRecover(reply)
 	keyStr, ok := pathFragments[kvservice.PathParam_Key]
 	if !ok {
-		panic(base.BuildBizErr("没有指定 key 值"))
+		panic(base.NewBizErr(base.ERROR_CODE_BASE_INVALID_PARAMTER, "没有指定 key 值"))
 	}
 	key, err := base64.RawURLEncoding.DecodeString(keyStr)
 	if err != nil {
-		panic(base.BuildBizErr("无法解析Key"))
+		panic(base.NewBizErr(base.ERROR_CODE_BASE_DECODE_ERROR, "无法解析Key"))
 	}
 	cf := request.FormValue("cf")
 	v, err := this.storageService.Get(cf, key)
 	serviceboot.PanicErr(err)
 	if v == nil {
-		panic(base.BuildBizErr("no value", 400, 404))
+		panic(base.NewBizErr(base.ERROR_CODE_BASE_404, "no value"))
 	}
 	reply.With(&modules.KVInfo{
 		Cf:    &cf,
@@ -50,11 +50,11 @@ func (this *KVService) del_key(request *http.Request, pathFragments map[string]s
 	defer serviceboot.ErrorRecover(reply)
 	keyStr, ok := pathFragments[kvservice.PathParam_Key]
 	if !ok {
-		panic(base.BuildBizErr("没有指定 key 值"))
+		panic(base.NewBizErr(base.ERROR_CODE_BASE_INVALID_PARAMTER, "没有指定 key 值"))
 	}
 	key, err := base64.RawURLEncoding.DecodeString(keyStr)
 	if err != nil {
-		panic(base.BuildBizErr("无法解析Key"))
+		panic(base.NewBizErr(base.ERROR_CODE_BASE_DECODE_ERROR, "无法解析Key"))
 	}
 	cf := request.FormValue("cf")
 	err = this.storageService.Del(cf, key)

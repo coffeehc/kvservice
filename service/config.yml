@@ -6,3 +6,5 @@ storage:
   vkClusterConfig:
     nodes: ["127.0.0.1:10998"]
     replicas: 1
+
+disableServiceRegister: true
