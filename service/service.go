@@ -19,7 +19,7 @@ type KVService struct {
 	storageService           StorageService
 }
 
-func (this *KVService) Init(configPath string, server *web.Server) error {
+func (this *KVService) Init(configPath string, server *web.Server) base.Error {
 	serviceConfig := new(Config)
 	err := base.LoadConfig(base.GetDefaultConfigPath(configPath), serviceConfig)
 	if err != nil {
@@ -38,11 +38,11 @@ func (this *KVService) Init(configPath string, server *web.Server) error {
 	return nil
 }
 
-func (this *KVService) Run() error {
+func (this *KVService) Run() base.Error {
 	return nil
 
 }
-func (this *KVService) Stop() error {
+func (this *KVService) Stop() base.Error {
 	this.storageService.Close()
 	return nil
 }

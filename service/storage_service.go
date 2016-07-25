@@ -6,19 +6,19 @@ import (
 	"os"
 
 	"github.com/coffeehc/logger"
-	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/tecbot/gorocksdb"
 	"sync"
+	"github.com/coffeehc/microserviceboot/base"
 )
 
 const DB_PARTITION = 1024
 
 type DataService interface {
-	Get(columnFamily string, key []byte) ([]byte, error)
-	Put(columnFamily string, key, value []byte) error
-	Del(columnFamily string, key []byte) error
+	Get(columnFamily string, key []byte) ([]byte, base.Error)
+	Put(columnFamily string, key, value []byte) base.Error
+	Del(columnFamily string, key []byte) base.Error
 	GetAll(columnFamily string, opts *gorocksdb.ReadOptions, prefixKey, startKey []byte, order string) Iterator
-	GetEngine(key []byte) (StorageEngine, error)
+	GetEngine(key []byte) (StorageEngine, base.Error)
 	Close()
 }
 
@@ -26,15 +26,15 @@ type StorageService interface {
 	DataService
 }
 
-func NewStorageService(config *StorageConfig) (StorageService, error) {
+func NewStorageService(config *StorageConfig) (StorageService, base.Error) {
 	if config.NodeId == 0 {
-		return nil, errors.New("nodeId不能为0")
+		return nil, base.NewError(base.ERROR_CODE_BASE_CONFIG_ERROR,"nodeId不能为0")
 	}
 	clusterConfig := config.KVClusterConfig
 	clusterConfig.Init()
 	err := os.MkdirAll(config.StorageDir, 0760)
 	if err != nil {
-		return nil, fmt.Errorf("创建存储目录[%s]出错:%s", config.StorageDir, err)
+		return nil, base.NewError(base.ERROR_CODE_BASE_INIT_ERROR,fmt.Sprintf("创建存储目录[%s]出错:%s", config.StorageDir, err))
 	}
 	engines := make(map[int]StorageEngine, DB_PARTITION)
 	for i := 0; i < DB_PARTITION; i++ {
@@ -59,18 +59,16 @@ type _StorageService struct {
 	partition int
 }
 
-var NO_ENGINE = errors.New("key没有存储在该节点")
-
-func (this *_StorageService) GetEngine(key []byte) (StorageEngine, error) {
+func (this *_StorageService) GetEngine(key []byte) (StorageEngine, base.Error) {
 	index := kvservice.GetConsistentHash(key, DB_PARTITION)
 	engine, ok := this.engins[index]
 	if !ok {
-		return engine, NO_ENGINE
+		return engine, base.NewError(kvservice.ERROR_CODE_KVSERVICE_NOFIND_PARTITION,"key没有存储在该节点")
 	}
 	return engine, nil
 }
 
-func (this *_StorageService) Get(columnFamily string, key []byte) ([]byte, error) {
+func (this *_StorageService) Get(columnFamily string, key []byte) ([]byte, base.Error) {
 	engine, err := this.GetEngine(key)
 	if err != nil {
 		return nil, err
@@ -78,7 +76,7 @@ func (this *_StorageService) Get(columnFamily string, key []byte) ([]byte, error
 	return engine.Get(columnFamily, nil, key)
 }
 
-func (this *_StorageService) Put(columnFamily string, key, value []byte) error {
+func (this *_StorageService) Put(columnFamily string, key, value []byte) base.Error {
 	engine, err := this.GetEngine(key)
 	if err != nil {
 		return err
@@ -86,7 +84,7 @@ func (this *_StorageService) Put(columnFamily string, key, value []byte) error {
 	return engine.Put(columnFamily, nil, key, value)
 }
 
-func (this *_StorageService) Del(columnFamily string, key []byte) error {
+func (this *_StorageService) Del(columnFamily string, key []byte) base.Error {
 	engine, err := this.GetEngine(key)
 	if err != nil {
 		return err

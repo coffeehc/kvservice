@@ -26,7 +26,7 @@ const (
 	GET_VALUES = "GET_VALUES"
 )
 
-func NewKVServiceApi(discoveryConfig *serviceclient.ServiceClientConsulConfig) (KVServiceApi, error) {
+func NewKVServiceApi(discoveryConfig *serviceclient.ServiceClientConsulConfig) (KVServiceApi, base.Error) {
 	serviceClient, err := serviceclient.NewServiceClient(&kvservice.KVServiceInfo{}, discoveryConfig)
 	if err != nil {
 		return nil, err
