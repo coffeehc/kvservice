@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/coffeehc/baseservices/kvservice"
+	"github.com/coffeehc/kvservice"
 	"fmt"
 	"os"
 

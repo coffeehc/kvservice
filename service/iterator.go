@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/coffeehc/baseservices/kvservice/service/rocksdb"
+	"github.com/coffeehc/kvservice/service/rocksdb"
 
-	"github.com/coffeehc/baseservices/kvservice"
+	"github.com/coffeehc/kvservice"
 	"github.com/tecbot/gorocksdb"
 	"sort"
-	"github.com/coffeehc/baseservices/kvservice/modules"
+	"github.com/coffeehc/kvservice/modules"
 )
 
 func memcmp(i, j []byte) int {
